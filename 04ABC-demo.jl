@@ -4,127 +4,103 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 55384908-1df9-4542-8664-71f8ed536143
-using Plots
-
-# ╔═╡ c9ef06e0-b123-419e-b098-4719b6710afc
-using ApproxBayes
-
-# ╔═╡ addef57c-0715-4052-a6e6-0bf83602783a
-using Distributions
-
-# ╔═╡ 7d704da8-989f-4bf7-805b-ec3da042f0fd
-using Random
-
-# ╔═╡ 81fbfd60-a429-49c5-aff9-19b4784ddaa1
+# ╔═╡ 93648051-96ec-4a05-8395-aeb59028d95e
 using DelimitedFiles
 
-# ╔═╡ 84c84b4b-9620-4db7-89c6-a854264d2fa2
+# ╔═╡ f3720378-bc3a-4d73-a878-23592c44affa
+using Plots
+
+# ╔═╡ 5775c6b0-2c6a-424b-9659-f68baff189b3
+using ApproxBayes
+
+# ╔═╡ 584db942-6291-43bd-a595-9f9efe18ce49
+using Distributions
+
+# ╔═╡ ba2eca48-40cc-4128-9530-6160e0f98f57
 md"""
 # ABC demo
 """
 
-# ╔═╡ 2924fbb4-1eaa-4329-aef9-be0027ed159a
+# ╔═╡ bf64789f-ae65-4cf2-9155-9243aa2021ff
 md"""
-## Read data
+Approximate Bayesian Computation
 """
 
-# ╔═╡ 7bdc1db0-03d9-11ee-2cdc-251e37ad8d2c
-pwd()
+# ╔═╡ a092094c-044c-11ee-3101-e981409db916
+readdir()
 
-# ╔═╡ dd57eff6-f508-49df-a098-6c694cb1f546
-dat = readdlm("dat.csv", ',')
+# ╔═╡ e75d8294-fdd0-4f2c-9ad1-e7811ee3ad5e
 
-# ╔═╡ a78e9fef-96ba-4182-b72c-c6d90dd3a718
+
+# ╔═╡ 2c33ebcf-8935-499f-90fc-c7f4bc692a42
+md"""
+## Load data
+"""
+
+# ╔═╡ 0d42daa0-4bb7-4089-9bcd-3c3310e1e515
+dat = readdlm("data2.csv",',')
+
+# ╔═╡ 8e840a78-778c-40f4-9f70-8e878dcc7853
 xVals=dat[:,1]
 
-# ╔═╡ f4aa1730-aa69-409f-85cf-03df6c9757ff
+# ╔═╡ c9410226-18c9-4fe7-b1cc-9a3a58edc72e
 yVals=dat[:,2]
 
-# ╔═╡ a530dbdc-0a65-4229-835e-9eec272a95ad
-scatter(xVals, yVals)
-
-# ╔═╡ 0529fcb4-b096-4060-bf1c-73aec6c15006
+# ╔═╡ 55de4d76-663f-4402-973e-5615085b2343
 md"""
-## Set up ABC
+ABC requirements:
+* data
+* model (function)
+* distance measure, threshold
 """
 
-# ╔═╡ 50e2ff41-cb34-4c07-90e3-b32fbb995c86
-md"""
-### Set up simulation functions
-"""
-
-# ╔═╡ c787943d-3d05-4ea5-9eea-2edf617d8594
-ssq(x, y) = sum((x - y).^2)
-
-# ╔═╡ 757054f7-2693-40f8-90e1-1bfee3176db5
-
-
-# ╔═╡ a5277d56-d5ef-4aa3-abe1-aee562b68053
-function meanOnly(params, constants, targetData)
-	α=params[1]
-	β=params[2]
-
-	return ssq(constants .+ α, targetData), 1
+# ╔═╡ 798e4aa7-1359-4a52-a31a-7bbf446b6996
+function intOnly(params, constants, observation)
+	α = params[1]
+	β = params[2] # not used here
+	return sum(((constants .+ α) - observation).^2), 1
 end
 
-# ╔═╡ 3a7bdd4e-f040-4cc0-8930-9905ac88a121
-meanOnly([0, 1e10], xVals, yVals)
+# ╔═╡ 24f8d85e-b904-472c-9eaa-a679b490be71
+intOnly([-1, 2000], xVals, yVals)
 
-# ╔═╡ cc0f9ff1-8290-4b8b-a115-b5dad0b0d638
-function meanSlope(params, constants, targetData)
-	α=params[1]
-	β=params[2]
-
-	return ssq(constants .* β .+ α, targetData), 1
+# ╔═╡ 54a9a733-0664-4bb8-83fb-d2efd821a8a6
+function intSlope(params, constants, observation)
+	α = params[1]
+	β = params[2] # not used here
+	return sum(((constants .* β .+ α) - observation).^2), 1
 end
 
-# ╔═╡ fb199e9a-7150-4883-8d72-f859c90f7ac2
-meanSlope([2, 4], xVals, yVals)
+# ╔═╡ 9654232c-ef6f-406d-a2a1-13bcd72ada3a
+intSlope([30, 20], xVals, yVals)
 
-# ╔═╡ bfdb090d-4735-4009-bd74-27f8e9f4bdd7
-abcSetup = ABCRejectionModel(
-	[meanOnly, meanSlope],
-	[2,2],
-	1.7e4,
-	[Prior([Uniform(-10.0, 10.0),
-		   Uniform(-10.0, 10.0)]),
-	 Prior([Uniform(-10.0, 10.0),
-		   Uniform(-10.0, 10.0)])],
-	constants=[xVals, xVals],
-)
+# ╔═╡ 8e1df3c4-46ff-4a6e-a81d-4e2295b8f3af
+setup = ABCRejectionModel([intOnly, intSlope],
+                          [2, 2],
+                           1e5,
+							[Prior([Uniform(-10,10), Uniform(-100, 100)]),
+							 Prior([Uniform(-10,10), Uniform(-100, 100)])],
+	maxiterations = 10^7,
+						constants=[xVals, xVals])
 
-# ╔═╡ fb6d6a2e-b923-4ed1-ac60-b46a9d69a0a5
-res = runabc(abcSetup, yVals)
+# ╔═╡ b98544df-0c08-4e2f-a0d9-f344074545f4
+res = runabc(setup, yVals, progress=true)
 
-# ╔═╡ 20c60875-6dc9-4d60-abcf-cd55b25f1794
-res.parameters
+# ╔═╡ 4495b374-6c0e-4d91-b209-10e8e068fdee
+res.parameters[2]
 
-# ╔═╡ 36f9b7b6-bdc3-4602-98c0-93ec34aea178
-plot(res)
-
-# ╔═╡ 11a2e3d9-1b8d-4ef8-9799-64fb5fffceea
+# ╔═╡ b9c2fd4b-f1de-4956-849c-81d87da2d913
 begin
-	xmin = minimum(xVals)
-	xmax=maximum(xVals)
-	plot(x -> 0, xmin, xmax, label="")
-	if size(res.parameters[1])[1] > 1
-		for i in 1:size(res.parameters[1])[1]
-			global pp = plot!(x -> res.parameters[1][i,1], label="")
-		end
+	pp=scatter(xVals, yVals,label="")
+	for j in 1:100
+	pp=plot!(i -> res.parameters[2][j,2]*i+res.parameters[2][j,1], -50, 50,label="")
 	end
-	if size(res.parameters[2])[1] > 1
-		for i in 1:size(res.parameters[2])[1]
-		global pp = plot!(x -> res.parameters[2][i,1] + res.parameters[2][i,2] * x, label="")
-	end
-	end
-	
-	plot(pp)
-	scatter!(xVals, yVals, color=1, label="")
+	pp=scatter!(xVals, yVals,label="")
+	pp
 end
 
-# ╔═╡ 703721b6-a206-4fb2-a172-2f4b2b1789f7
-size(res.parameters[1])
+# ╔═╡ dcf0fdd8-b4a0-4e95-890f-bda170b9c233
+
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -133,7 +109,6 @@ ApproxBayes = "f5f396d3-230c-5e07-80e6-9fadf06146cc"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
 ApproxBayes = "~0.3.2"
@@ -147,7 +122,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "1883c3d2763b0029057d64d82d80ac0de10b10a8"
+project_hash = "201f712bc5ba81fbede4e86bfd3a8957c0df5e94"
 
 [[deps.ApproxBayes]]
 deps = ["DelimitedFiles", "Distances", "Distributions", "Printf", "ProgressMeter", "Random", "RecipesBase", "Statistics", "StatsBase"]
@@ -1161,31 +1136,27 @@ version = "1.4.1+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─84c84b4b-9620-4db7-89c6-a854264d2fa2
-# ╠═55384908-1df9-4542-8664-71f8ed536143
-# ╠═c9ef06e0-b123-419e-b098-4719b6710afc
-# ╠═addef57c-0715-4052-a6e6-0bf83602783a
-# ╠═7d704da8-989f-4bf7-805b-ec3da042f0fd
-# ╠═81fbfd60-a429-49c5-aff9-19b4784ddaa1
-# ╟─2924fbb4-1eaa-4329-aef9-be0027ed159a
-# ╠═7bdc1db0-03d9-11ee-2cdc-251e37ad8d2c
-# ╠═dd57eff6-f508-49df-a098-6c694cb1f546
-# ╠═a78e9fef-96ba-4182-b72c-c6d90dd3a718
-# ╠═f4aa1730-aa69-409f-85cf-03df6c9757ff
-# ╠═a530dbdc-0a65-4229-835e-9eec272a95ad
-# ╟─0529fcb4-b096-4060-bf1c-73aec6c15006
-# ╟─50e2ff41-cb34-4c07-90e3-b32fbb995c86
-# ╠═c787943d-3d05-4ea5-9eea-2edf617d8594
-# ╠═757054f7-2693-40f8-90e1-1bfee3176db5
-# ╠═a5277d56-d5ef-4aa3-abe1-aee562b68053
-# ╠═3a7bdd4e-f040-4cc0-8930-9905ac88a121
-# ╠═cc0f9ff1-8290-4b8b-a115-b5dad0b0d638
-# ╠═fb199e9a-7150-4883-8d72-f859c90f7ac2
-# ╠═bfdb090d-4735-4009-bd74-27f8e9f4bdd7
-# ╠═fb6d6a2e-b923-4ed1-ac60-b46a9d69a0a5
-# ╠═20c60875-6dc9-4d60-abcf-cd55b25f1794
-# ╠═36f9b7b6-bdc3-4602-98c0-93ec34aea178
-# ╠═11a2e3d9-1b8d-4ef8-9799-64fb5fffceea
-# ╠═703721b6-a206-4fb2-a172-2f4b2b1789f7
+# ╟─ba2eca48-40cc-4128-9530-6160e0f98f57
+# ╟─bf64789f-ae65-4cf2-9155-9243aa2021ff
+# ╠═a092094c-044c-11ee-3101-e981409db916
+# ╠═93648051-96ec-4a05-8395-aeb59028d95e
+# ╠═f3720378-bc3a-4d73-a878-23592c44affa
+# ╠═5775c6b0-2c6a-424b-9659-f68baff189b3
+# ╠═584db942-6291-43bd-a595-9f9efe18ce49
+# ╠═e75d8294-fdd0-4f2c-9ad1-e7811ee3ad5e
+# ╟─2c33ebcf-8935-499f-90fc-c7f4bc692a42
+# ╠═0d42daa0-4bb7-4089-9bcd-3c3310e1e515
+# ╠═8e840a78-778c-40f4-9f70-8e878dcc7853
+# ╠═c9410226-18c9-4fe7-b1cc-9a3a58edc72e
+# ╠═55de4d76-663f-4402-973e-5615085b2343
+# ╠═798e4aa7-1359-4a52-a31a-7bbf446b6996
+# ╠═24f8d85e-b904-472c-9eaa-a679b490be71
+# ╠═54a9a733-0664-4bb8-83fb-d2efd821a8a6
+# ╠═9654232c-ef6f-406d-a2a1-13bcd72ada3a
+# ╠═8e1df3c4-46ff-4a6e-a81d-4e2295b8f3af
+# ╠═b98544df-0c08-4e2f-a0d9-f344074545f4
+# ╠═4495b374-6c0e-4d91-b209-10e8e068fdee
+# ╠═b9c2fd4b-f1de-4956-849c-81d87da2d913
+# ╠═dcf0fdd8-b4a0-4e95-890f-bda170b9c233
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
